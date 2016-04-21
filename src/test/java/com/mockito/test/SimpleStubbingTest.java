@@ -1,18 +1,22 @@
 package com.mockito.test;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.spy;
 
 import java.util.Calendar;
 import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,6 +25,7 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.exceptions.base.MockitoAssertionError;
 import org.mockito.exceptions.base.MockitoException;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -50,6 +55,8 @@ public class SimpleStubbingTest {
 	public static final int VALUE_FOR_WANTED_ARGUMENT = 500;
 	public static final Date ANY_OTHER_DATE;
 	public static final int TEST_NUMBER_OF_FLOWERS = 77;
+	private static final int ORIGINAL_NUMBER_OF_LEAFS = 786;
+	private static final int NEW_NUMBER_OF_LEAFS = 9864;
 
 	@Mock
 	private Flower flowerMock;
@@ -232,9 +239,64 @@ public class SimpleStubbingTest {
 		assertEquals(searchCriteriaUsed.getColor(), "yellow");
 		assertEquals(searchCriteriaUsed.getNumberOfBuds(), 3);
 	}
-	
+
 	/**
 	 * Verifying With Timeout
+	 * 
+	 * It can be useful while testing multi-threaded systems.
+	 */
+	@Test
+	public void shouldFailForLateCall() {
+		Thread t = new Thread() {
+			public void run() {
+				try {
+					Thread.sleep(40);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				waterSourceMock.doSelfCheck();
+			}
+		};
+
+		t.start();
+
+		verify(waterSourceMock, never()).doSelfCheck();
+
+		try {
+			verify(waterSourceMock, timeout(20)).doSelfCheck();
+			fail("verificationShuldFail");
+		} catch (MockitoAssertionError e) {
+			// expected
+		}
+	}
+
+	/**
+	 * Spying on Real Objects.- Usually there is no reason to spy on real
+	 * objects, and it can be a sign of a code smell, but in some situations
+	 * (like working with legacy code and IoC containers) it allows us to test
+	 * things impossible to test with pure mocks.
+	 */
+	@Test
+	public void shouldStubMethodAndCallRealNotStubbedMethod() {
+		Flower realFlower = new Flower();
+		realFlower.setNumberOfLeafs(ORIGINAL_NUMBER_OF_LEAFS);
+		Flower flowerSpy = spy(realFlower);
+		willDoNothing().given(flowerSpy).setNumberOfLeafs(Mockito.anyInt());
+
+		flowerSpy.setNumberOfLeafs(NEW_NUMBER_OF_LEAFS); // stubbed,
+															// shoulddonothing
+
+		verify(flowerSpy).setNumberOfLeafs(NEW_NUMBER_OF_LEAFS);
+
+		assertEquals(flowerSpy.getNumberOfLeafs(), ORIGINAL_NUMBER_OF_LEAFS);// value
+																				// was
+																				// not
+																				// changed
+
+	}
+
+	/**
+	 * Changing the Mock Default Return Value
 	 */
 
 }

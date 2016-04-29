@@ -14,12 +14,9 @@ import testClases.PlantWaterer;
 import testClases.WaterSource;
 import testClases.WateringScheduler;
 
-/**
+/*
  * injectMocks annotation simplifies mock and spy injection. It can inject
  * objects using constructor injection, setter injection or field injection.
- * 
- * @author MXPCL
- *
  */
 @RunWith(MockitoJUnitRunner.class)
 public class MockInjectingTest {
